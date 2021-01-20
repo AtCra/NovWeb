@@ -1,14 +1,34 @@
 import Vue from 'vue'
 import VueRouter from 'vue-router'
-import Home from '../views/Home.vue'
+import Test from '../views/Test.vue'
 
 Vue.use(VueRouter)
 
+Vue.prototype.relpath=function(){
+  if(undefined!=this.$route.params.relpath){
+      // console.log('dir-view:relpath='+'/'+this.$route.params.relpath)
+      return '\\'+this.$route.params.relpath;
+  }
+  else{
+      // console.log('dir-view:relpath=/')
+      return '\\';
+  }
+}
 const routes = [
   {
     path: '/',
-    name: 'Home',
-    component: Home
+    name: 'Test',
+    component: Test
+  },
+  {
+    path:'/dir/:relpath?',
+    name:'Dir',
+    component:()=> import('../views/DirView.vue')
+  },
+  {
+    path:'/book/:relpath',
+    name:'Book',
+    component:()=>import('../views/BookView.vue')
   },
   {
     path: '/about',
