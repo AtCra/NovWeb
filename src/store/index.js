@@ -33,6 +33,7 @@ export default new Vuex.Store({
     settings:{
       read:{
         font:'宋体',
+        font_list:['雅黑', '宋体', '楷书', '启体'],
         font_size:16,//单位PX
         line_height:1.5,//行高1.5em
         buf_chapters_num:10//缓存多少章

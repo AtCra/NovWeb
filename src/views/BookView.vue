@@ -57,7 +57,7 @@ export default {
         },
         //缓存第index章的章节内容
         //传入book用于检查本章节是否已经缓存
-        //返回一个Promise，表征是否缓存完成
+        //返回一个Promise，缓存完成后标记resolve
         bufChapter(book,index){
             // console.log('book-view:bufChapter:缓存章节:index=',index)
             
@@ -86,6 +86,7 @@ export default {
         },
         //从index章（含）开始，最多缓存bufSize章（若剩余章节数小于bufSize则全部缓存）
         //传入book用于检查下标越界和是否已缓存
+        //返回一个Promise，全部完成后标记resolve
         bufChapters(book,index,bufSize){
             let rest=book.chapterNum-1-index//剩余章节数
 
