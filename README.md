@@ -1,24 +1,46 @@
-# novweb2.0
+# NovWeb
+a novel website frontend base on Vue
 
-## Project setup
-```
-npm install
-```
+## 数据存储：Vuex
+全局store中存储三种数据：
+设置，目录，书籍
+1. state.setting
 
-### Compiles and hot-reloads for development
-```
-npm run serve
-```
+	数据结构：对象
+	
+2. state.books
 
-### Compiles and minifies for production
-```
-npm run build
-```
+	数据结构：数组
+	
+	存储所有缓存的books，缓存的Book对象具有下列属性：
+	
+		1. path：相对路径
+		
+		2. chapterNum：章节数
+		
+		3. index：当前阅读的章节
+		
+		4. chapters：数组，存放各章节内容
+		
+			chapter为一个对象，具有以下属性
+			
+			title：章节标题
+			
+			context：章节内容
+3. state.dirs
 
-### Lints and fixes files
-```
-npm run lint
-```
-
-### Customize configuration
-See [Configuration Reference](https://cli.vuejs.org/config/).
+	数据结构：数组
+	
+	缓存目录结构。每个Dir为一个对象，具有下列属性
+	
+		1. path：相对路径
+		
+		2. childrenDirs
+		
+		3. childrenBooks：该数组存储的Book侧重书的外在信息，每个Book对象具有以下属性
+		
+			1. size：空间大小
+			
+			2. path：相对路径
+			
+			3. lastReadTime：最后阅读时间
