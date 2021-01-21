@@ -1,7 +1,8 @@
 <template>
   <div id="app">
     <div id="nav">
-      <router-link to="/">Test</router-link>
+      <router-link to="/test">Test</router-link>
+      <router-link to="/test/read">TestRead</router-link>
       <router-link to="/dir">Dir</router-link>
       <router-link to="/about">About</router-link>
     </div>
@@ -11,6 +12,9 @@
 
 <style>
 #app {
+  width: 100%;
+  height: 100%;
+
   font-family: Avenir, Helvetica, Arial, sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
@@ -20,6 +24,7 @@
 
 #nav {
   padding: 30px;
+  margin: 20px;
 }
 
 #nav a {

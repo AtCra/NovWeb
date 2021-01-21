@@ -108,13 +108,14 @@ export default {
         }
     },
     mounted(){
-        this.loadToLocal()
+        // this.loadToLocal()
     },
     watch:{
-        $route(){
-            // this.$router.go(0);
-            // console.log('Watch',from,to);
-            this.loadToLocal()
+        $route:{
+            handler(){
+                this.loadToLocal()
+            },
+            immediate:true
         }
     }
 }

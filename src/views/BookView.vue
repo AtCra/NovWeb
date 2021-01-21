@@ -137,6 +137,7 @@ export default {
         //==================================以上函数用于数据请求========================================
 
         //==================================以下函数用于阅读控制========================================
+        //设置当前阅读的章节
         setReadIndex(index){
             let t=this,rel=this.relpath()
             let book={
@@ -179,6 +180,19 @@ export default {
             })
             console.log(p);
         }
+    },
+    computed:{
+        //将context切割为数组，每个元素为一个段落
+        ctxArr(){
+            let arr=this.context.split('<br>')
+            //删除空字符
+            arr=arr.filter((item)=>{
+                return item.length>0
+            })
+            arr.shift()//删除第一个元素，第一个元素一般都是标题
+            // console.log(arr);
+            return arr
+        },
     },
     mounted(){
         let t=this

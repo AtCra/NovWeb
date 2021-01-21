@@ -16,9 +16,14 @@ Vue.prototype.relpath=function(){
 }
 const routes = [
   {
-    path: '/',
+    path: '/test',
     name: 'Test',
     component: Test
+  },
+  {
+    path: '/test/read',
+    name: 'TestRead',
+    component: ()=>import('../components/ReadSection.vue')
   },
   {
     path:'/dir/:relpath?',
