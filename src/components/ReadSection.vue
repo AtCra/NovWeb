@@ -10,8 +10,8 @@
             </p>
         </article>
     </div>
-    <!-- 展示页码，注意此处不能直接使用计算属性pageNum，原因为pageNum的计算需等待dom尺寸渲染完毕 -->
-    <div class="read-process">{{pageProcessStr}}</div>
+    <!-- 底栏展示阅读进度，注意pageNum的计算需等待dom尺寸渲染完毕 -->
+    <div class="read-process">{{pageIndex+1}}/{{pageNum}}</div>
 </div>
 </template>
 <script>
@@ -19,35 +19,23 @@
 export default {
     data(){return {
         pageIndex:0,//当前阅读的页码
-        pageProcessStr:'',//在页面下方展示的页码字符串，如'4/9'
+        pageNum:1,//总页数
         margin:16,//边距
 
     }},
     props:{
         chapIndex:{//章节编号
             type:Number,
-            default(){return -1}
+            default(){return 0}
         },
         ctxArr:{//章节段落数组
             type:Array,
-            default(){return []}
+            default(){return ['等待载入']}
         },
         title:{//章节标题
             type:String,
             default(){return '载入中'}
         }
-    },
-    computed:{
-        //返回本章总页数（注意计算需要dom尺寸加载完毕）
-        pageNum(){
-            let num=0
-            let pageWidth=document.body.offsetWidth-this.margin
-            let containerWidth=this.$refs.container.scrollWidth
-            num=Math.round(containerWidth/pageWidth)//四舍五入
-            console.log(`read-section:compted:pageNum: pageWidth:${pageWidth},containerWidth:${containerWidth},pageNum:${num}`);
-            return num
-        }
-
     },
     methods:{
         //从store中载入阅读样式
@@ -57,7 +45,15 @@ export default {
             article.style.lineHeight=this.$store.state.settings.read.line_height
             article.style.fontFamily=this.$store.state.settings.read.font
         },
+        //重新计数页码
+        reCalcPageNum(){
+            let pageWidth=document.body.offsetWidth-this.margin
+            let containerWidth=this.$refs.container.scrollWidth
+            this.pageNum=Math.round(containerWidth/pageWidth)//四舍五入
+            console.log(`read-section:reCalc-PageNum: pageWidth:${pageWidth},containerWidth:${containerWidth},pageNum:${this.pageNum}`);
+        },
         //跳转到page页。成功后会修改data中的pageIndex
+        //会检查是否需要载入前/后一章，若需要会发送事件给父组件
         goPage(page){
             //单次翻页完毕前禁止再次翻页
             if(undefined == this.pageGoFinish)this.pageGoFinish=false
@@ -70,17 +66,21 @@ export default {
             }
 
             //检查是否需要载入上/下一章
-            if(page==-1){//请求载入上一章
-                this.$emit('previousChap');return       
-            }else if(page>this.pageNum){//请求载入下一章
-                this.$emit('nextChap');return
+            if(page==this.pageNum||page==-1){
+                if(page==-1){//请求载入上一章
+                    this.$emit('previous_chap',this.chapIndex-1);    
+                }else if(page==this.pageNum){//请求载入下一章
+                    this.$emit('next_chap',this.chapIndex+1);
+                }
+                return
             }
+            
+            
 
             //执行翻页效果
             let width = document.body.offsetWidth
             let translateX=page*(width-this.margin)//减去边距，单位px    
             let article=this.$refs.article
-            console.log(article);
             article.style.transform = `translateX(-${translateX}px)`//注意向左偏移为负
 
             //翻页完毕
@@ -106,29 +106,27 @@ export default {
 
     },
     watch:{
-        //监听页码的改变
-        pageIndex:{
-            immediate:true,
-            handler(){
-                let t=this
-                //更新底栏的阅读进度：当前页/本章总页数。使用nextTick避免在dom加载完成前读取PageNum
-                t.$nextTick(()=>{
-                    t.pageProcessStr=t.pageIndex+1+'/'+t.pageNum
-                })
-            }
-        },
         //监听章节编号的改变，章节编号改变代表新章节载入了
         chapIndex:{
             handler(newIndex,oldIndex){
-                //重置章节阅读进度，跳页
-                newIndex>oldIndex?this.pageIndex=0:this.pageIndex=this.pageNum
-                this.goPage(this.pageIndex)
+                let t=this
+                t.$nextTick(()=>{
+                    //内容更新后重新计算页数
+                    t.reCalcPageNum()
+                    
+                    //重置章节阅读进度，跳页
+                    if(oldIndex==null || newIndex>=oldIndex){//oldIndex==null表示刚打开这一章
+                        t.pageIndex=0
+                    }else t.pageIndex=t.pageNum-1
+                    t.goPage(t.pageIndex)
+                })
             }
         }
     },
     mounted(){
         this.loadReadSetting()
         this.addListener()
+        this.reCalcPageNum()
     }
 }
 </script>
@@ -154,10 +152,11 @@ $m:16px;//阅读区域边距，修改时需同时修改data中的边距
     margin: 0 $m;
 }
 article {
+//滑动翻页的本质是将article元素横向展开（width很大），翻页的本质就是将article元素进行横向位移
 // 以下属性用于实现滑动翻页
     columns: calc(100vw - #{2*$m}) 1;
     column-gap:$m;
-    height: 100%;//定高即可
+    height: 90%;//定高即可
     transition: .4s;//翻页动画持续时间
 }
 

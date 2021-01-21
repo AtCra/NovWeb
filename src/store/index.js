@@ -36,7 +36,7 @@ export default new Vuex.Store({
         font:'雅黑',
         font_size:'1rem',
         line_height:'1.8rem',//行高
-        buf_chapters_num:10//缓存多少章
+        buf_chapters_num:5//缓存多少章
       }
     },
     books:[],
@@ -44,7 +44,7 @@ export default new Vuex.Store({
     
   },
   getters:{
-    //dir返回一个函数，以便传入rel参数进行查询
+    //getdir返回一个函数，以便传入rel参数进行查询
     getdir:state=>(relpath)=>{
       return state.dirs.find(dir=>dir.path===relpath)
     },
@@ -93,7 +93,7 @@ export default new Vuex.Store({
       state.books.forEach(b=>{
         if(book.path==b.path){
           b.index=book.index
-        }
+        }else throw new Error('$store:setReadIndex:未查找到此书本缓存：'+book.path)
       })
     }
   },

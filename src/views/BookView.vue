@@ -1,13 +1,20 @@
 <template>
     <div id="readView">
-        <h1>{{title}}</h1>
-        <p v-html="context"></p>
+        <!-- <h1>{{title}}</h1>
+        <p v-html="context"></p> -->
+        <div ref="readSection">
+            <!-- 阅读视图，含章节标题，章节正文，底栏页码 -->
+            <read-section :chapIndex="index" :ctxArr="ctxArr" :title="title"
+                           @next_chap="handleSwitchChap(index+1)" @previous_chap="handleSwitchChap(index-1)"></read-section>
+        </div>
     </div>
 </template>
 
 <script>
 import ajax from '../net/conn'
+import ReadSection from '../components/ReadSection.vue'
 export default {
+    components:{ReadSection},
     data(){
         return {
             index:null,//当前的章节
@@ -137,9 +144,26 @@ export default {
         //==================================以上函数用于数据请求========================================
 
         //==================================以下函数用于阅读控制========================================
-        //设置当前阅读的章节
+        //此函数用于提示用户消息
+        notifyUser(msg){
+            alert(msg)
+        },
+        //处理切换章节事件，会设置当前阅读章节，并载入
+        handleSwitchChap(index){
+            console.log('book-view:handle-SwitchPage:处理章节切换：',index);
+            this.setReadIndex(index)
+            this.loadToLocal()
+        },
+        //设置当前阅读的章节（含index合法性校验），会同时更新本地、缓存、服务器端的阅读记录
         setReadIndex(index){
             let t=this,rel=this.relpath()
+
+            //首先校验章节合法性
+            if(index<0){
+                this.notifyUser('没有前一章啦~');return
+            }else if(index>this.$store.state.books){
+                this.notifyUser('没有下一章啦~');return
+            }
             let book={
                 path:rel,
                 index
@@ -149,7 +173,7 @@ export default {
             //更新本地
             t.index=index
             //更新服务器
-            //首先判定：是否存在上次更新
+            //首先判定：是否存在上次更新未完成的情况
             if(undefined==t.lastSetReadIndexPromise){//用于保证处理方式一致
                 t.lastSetReadIndexPromise=new Promise((resolve)=>{resolve()})
             }
@@ -184,6 +208,7 @@ export default {
     computed:{
         //将context切割为数组，每个元素为一个段落
         ctxArr(){
+            if(this.context==null)return
             let arr=this.context.split('<br>')
             //删除空字符
             arr=arr.filter((item)=>{
@@ -197,7 +222,7 @@ export default {
     mounted(){
         let t=this
         t.loadToLocal()
-        t.test()
+        // t.test()
     }
 }
 </script>

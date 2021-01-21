@@ -11,7 +11,7 @@ function ajax(apiURL,data){
             if (req.status === 200) { 
                     resolve(req.responseText);
                 } else {
-                    reject(new Error(req.statusText));
+                    reject(new Error(req.status+':\n'+req.responseText));
                 } 
             };
         req.onerror = function () {
