@@ -1,17 +1,25 @@
 <template>
-<div class="read-container">
-    <div class="article-container" ref="container">
+<div class="read-container" ref="container">
+    <!-- 垂直滚动 -->
+    <div v-if="verticle" class="verticle-article-container">
+            <p v-for="(p,index) in ctxArr" :key="index">
+                {{p}}
+            </p>
+    </div>
+
+    <!-- 水平滚动 -->
+    <div v-else class="article-container" ref="acontainer" @click="handleClick">
         <!-- 章节标题 -->
         <h3 class="article-title">{{title}}</h3>
         <!-- 章节内容 -->
-        <article ref="article"><!-- +'transform:'+transform+';' -->
+        <article ref="article">
             <p v-for="(p,index) in ctxArr" :key="index">
                 {{p}}
             </p>
         </article>
+        <!-- 底栏展示阅读进度，注意pageNum的计算需等待dom尺寸渲染完毕 -->
+        <div class="read-process">{{pageIndex+1}}/{{pageNum}}</div>
     </div>
-    <!-- 底栏展示阅读进度，注意pageNum的计算需等待dom尺寸渲染完毕 -->
-    <div class="read-process">{{pageIndex+1}}/{{pageNum}}</div>
 </div>
 </template>
 <script>
@@ -20,6 +28,7 @@ export default {
     data(){return {
         pageIndex:0,//当前阅读的页码
         pageNum:1,//总页数
+        verticle:false,//是否为纵向阅读
         margin:16,//边距
 
     }},
@@ -40,15 +49,15 @@ export default {
     methods:{
         //从store中载入阅读样式
         loadReadSetting(){
-            let article=this.$refs.article
-            article.style.fontSize=this.$store.state.settings.read.font_size
-            article.style.lineHeight=this.$store.state.settings.read.line_height
-            article.style.fontFamily=this.$store.state.settings.read.font
+            let c=this.$refs.container
+            c.style.fontSize=this.$store.state.settings.read.font_size
+            c.style.lineHeight=this.$store.state.settings.read.line_height
+            c.style.fontFamily=this.$store.state.settings.read.font
         },
         //重新计数页码
         reCalcPageNum(){
             let pageWidth=document.body.offsetWidth-this.margin
-            let containerWidth=this.$refs.container.scrollWidth
+            let containerWidth=this.$refs.acontainer.scrollWidth
             this.pageNum=Math.round(containerWidth/pageWidth)//四舍五入
             console.log(`read-section:reCalc-PageNum: pageWidth:${pageWidth},containerWidth:${containerWidth},pageNum:${this.pageNum}`);
         },
@@ -89,8 +98,18 @@ export default {
             setTimeout(()=>{t.pageGoFinish=true},400)//400毫秒后翻页动画结束
         },
         addListener(){
-            // let container=this.$refs.container
+            //监听浏览器窗口大小，大小改变时重新计算页码
+            let t=this
+            window.onresize=()=>{
+                t.reCalcPageNum()
+            }
+            //监听触摸事件
+            this.$refs.acontainer.addEventListener('touchstart',this.handleTouch)
+            //监听方向键
             document.addEventListener('keydown',this.handleKeyDown)
+            // this.$refs.acontainer.addEventListener('onclick',this.handleClick)
+
+            console.log('read-section:初始化事件监听器...');
         },
         handleKeyDown(e){
             // console.log(`read-section:event:`,e);
@@ -99,9 +118,18 @@ export default {
         },
         handleClick(e){
             console.log(`read-section:event:`,e);
+            let w=document.body.offsetWidth
+            if(e.clientX<w/2){
+                this.goPage(this.pageIndex-1)
+            }else this.goPage(this.pageIndex+1)
         },
         handleTouch(e){
-            console.log(`read-section:event:`,e);
+            // console.log(`read-section:event:`,e);
+            let touch=e.targetTouches[0]//当前dom上的头号手指
+            let w=document.body.offsetWidth
+            if(touch.clientX<w/2){
+                this.goPage(this.pageIndex-1)
+            }else this.goPage(this.pageIndex+1)
         },
 
     },
@@ -141,13 +169,13 @@ $m:16px;//阅读区域边距，修改时需同时修改data中的边距
     $m-rp:2em;
     position: relative;
     width: max-content;
-    padding : $m-rp 0 $m-rp 2*$m-rp;
+    padding : 0 0 0 $m-rp;
     font-size: 0.5em;
 }
 
 .article-container {
 // 以下属性用于实现滑动翻页
-    height: 95vh;
+    height: 98vh;
     overflow: hidden;
     margin: 0 $m;
 }
@@ -156,7 +184,7 @@ article {
 // 以下属性用于实现滑动翻页
     columns: calc(100vw - #{2*$m}) 1;
     column-gap:$m;
-    height: 90%;//定高即可
+    height: 85%;//定高即可
     transition: .4s;//翻页动画持续时间
 }
 
