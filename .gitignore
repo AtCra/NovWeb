@@ -4,6 +4,7 @@ node_modules
 
 # 
 .~vsdx
+src/~$$程序逻辑.~vsdx
 
 # local env files
 .env.local
