@@ -183,26 +183,6 @@ export default {
                     console.log('book-view:setReadIndex:更新index为',index,'服务器响应：',resp);
                 })
             })            
-        },
-        test(){
-            let t=this
-            let p=new Promise((resolve)=>{
-                setTimeout(()=>{
-                    
-                    t.setReadIndex(t.index+1)
-                    t.loadToLocal()
-                    resolve()
-                },30)
-            })
-            p=p.then(()=>{
-                setTimeout(()=>{
-                    
-                    t.setReadIndex(t.index+1)
-                    t.loadToLocal()
-                    // resolve()
-                },30)
-            })
-            console.log(p);
         }
     },
     computed:{

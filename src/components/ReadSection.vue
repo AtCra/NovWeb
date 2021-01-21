@@ -5,6 +5,7 @@
             <p v-for="(p,index) in ctxArr" :key="index">
                 {{p}}
             </p>
+        <!-- TODO：垂直滚动时的章节加载 -->
     </div>
 
     <!-- 水平滚动 -->
@@ -61,6 +62,14 @@ export default {
             this.pageNum=Math.round(containerWidth/pageWidth)//四舍五入
             console.log(`read-section:reCalc-PageNum: pageWidth:${pageWidth},containerWidth:${containerWidth},pageNum:${this.pageNum}`);
         },
+        //请求载入上一章
+        reqPreviousChap(){
+            this.$emit('previous_chap',this.chapIndex-1); 
+        },
+        //请求载入下一章
+        reqNextChap(){
+            this.$emit('next_chap',this.chapIndex+1);
+        },
         //跳转到page页。成功后会修改data中的pageIndex
         //会检查是否需要载入前/后一章，若需要会发送事件给父组件
         goPage(page){
@@ -77,9 +86,9 @@ export default {
             //检查是否需要载入上/下一章
             if(page==this.pageNum||page==-1){
                 if(page==-1){//请求载入上一章
-                    this.$emit('previous_chap',this.chapIndex-1);    
+                    this.reqPreviousChap()
                 }else if(page==this.pageNum){//请求载入下一章
-                    this.$emit('next_chap',this.chapIndex+1);
+                    this.reqNextChap()
                 }
                 return
             }
