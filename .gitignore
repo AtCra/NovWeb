@@ -2,6 +2,8 @@
 node_modules
 /dist
 
+# 
+.~vsdx
 
 # local env files
 .env.local
