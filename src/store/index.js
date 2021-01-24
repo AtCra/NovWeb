@@ -53,16 +53,28 @@ export default new Vuex.Store({
     }
   },
   mutations: {
+    //写入目录缓存，同时将目录中的书籍信息写入到书籍缓存中
     pushDir(state,dir){
       state.dirs.push(dir)
+      // console.log('$store:state:pushDir(目录缓存):目录中的书籍:',dir.books);
+      dir.books.forEach((book)=>{
+        // console.log('$store:state:pushDir(目录缓存):目录中的书籍:',book);
+        state.books.push(book)
+      })
     },
     //如果该书已缓存则更新缓存，未缓存则写入缓存
     updBook(state,book){
-      let exist=false
+      let exist=false//缓存中是否存在本书记录
       state.books.forEach(b=>{
         if(b.path==book.path){
           exist=true
-          b=book
+          // b=book
+          //遍历缓存中的书籍对象的属性
+          for(let key in book){
+            // console.log('$store:state:updBook:',key,book[key]);
+            b[key]=book[key]
+          }
+          
         }
       })
       if(!exist){

@@ -20,46 +20,58 @@ export default {
             index:null,//当前的章节
             title:null,
             context:null,
+            chaptersBuf:[],//用于在章节列表未加载完毕的时候临时缓存章节内容
             defaultBufSize:this.$store.state.settings.read.buf_chapters_num//默认缓存10章
         }
     },
     methods:{
         //==================================以下函数用于数据请求========================================
 
-        //向服务器请求章节列表和阅读记录并缓存
+        //向服务器请求阅读记录并缓存
         bufInfo(){
             let t=this,rel=this.relpath()
             let book={
                 path:t.relpath(),//相对路径
-                chapterNum:null,//章节数
                 index:null,//当前阅读到的章节
-                chapters:[]//章节列表
             }
-            console.log('book-view:bufInfo:向服务器请求章节列表 \trelpath:',rel)
+            // console.log('book-view:bufInfo:向服务器请求章节列表 \trelpath:',rel)
 
-            return new Promise((resolve)=>{
-                let finish=0;//载入完成的个数
-
-                //请求当前阅读的章节数
-                let act='getPartNo'
-                ajax(t.$store.state.apis.bookControl,{act,path:rel}).then(function(resp){
-                    let obj=JSON.parse(resp)//{partNo:xxx}
-                    book.index=obj.partNo
-                    finish++;if(finish==2)resolve(book)
-                })
-
-                //请求章节列表
-                act='getPartList'
-                ajax(t.$store.state.apis.bookControl,{act,path:rel}).then(function(resp){
-                    let arr=JSON.parse(resp)
-                    //arr中的某个元素示例{ "index": 625, "lineIndex": 36455, "title": "第626章 第六百一十五章：腾飞之始（十一）乌合之众" }
-                    book.chapters=arr
-                    book.chapterNum=arr.length
-                    finish++;if(finish==2)resolve(book)
-                })
-            }).then((book)=>{
+            //请求当前阅读的章节数
+            let act='getPartNo'
+            return ajax(t.$store.state.apis.bookControl,{act,path:rel}).then(function(resp){
+                let obj=JSON.parse(resp)//{partNo:xxx}
+                book.index=obj.partNo
                 t.$store.commit('updBook',book)
-                console.log('book-view:buf:书籍信息缓存完毕:',book);
+                console.log('book-view:bufInfo:阅读记录缓存完毕:',book);
+            })
+        },
+        //缓存章节列表
+        bufChapList(){
+            //如果已经缓存了就直接返回
+            let b_catch=this.$store.getters.getbook(this.relpath())
+            if(b_catch!=undefined && b_catch.chapters != undefined)return new Promise((resolve)=>resolve())
+
+            //请求章节列表
+            let act='getPartList'
+            let t=this,rel=this.relpath()
+            let book={
+                path:t.relpath(),//相对路径
+                chapters:[],//章节列表
+                chapterNum:null,//章节数
+            }
+            return ajax(t.$store.state.apis.bookControl,{act,path:rel}).then(function(resp){
+                let arr=JSON.parse(resp)
+                //arr中的某个元素示例{ "index": 625, "lineIndex": 36455, "title": "第626章 第六百一十五章：腾飞之始（十一）乌合之众" }
+                book.chapters=arr
+                book.chapterNum=arr.length
+                t.$store.commit('updBook',book)
+
+                //创建自定义事件并触发之
+                let chapListBufed=new CustomEvent('章节列表缓存完毕',{
+                    book
+                })
+                window.dispatchEvent(chapListBufed)
+                console.log('book-view:bufChapList:章节列表缓存完毕:',book);
             })
         },
         //缓存第index章的章节内容
@@ -74,7 +86,25 @@ export default {
                 index,//章节编号
                 context:null//内容
             }
-            //首先检查该章节是否已缓存
+            //章节列表未缓存则：请求章节并写入临时缓存,待章节列表加载完毕再写入缓存
+            if(undefined == book.chapters){
+                return ajax(t.$store.state.apis.chapterUpd,{partNo:index,path:rel}).then(function(resp){
+                    let obj=JSON.parse(resp)
+                    chap.context=obj.context;
+                    chap.title=obj.title
+
+                    //写入临时缓存
+                    t.chaptersBuf.push(chap)
+
+                    //章节列表加载完毕后写缓存
+                    window.addEventListener('章节列表缓存完毕',()=>{
+                        t.$store.commit('updChapter',chap)
+                        console.log('book-view:bufChapter:将临时章节写入缓存:',chap);
+                    })
+                    console.log('book-view:bufChapter:已临时缓存章节:',chap);
+                })
+            }
+            //章节列表已缓存，检查该章节是否已缓存
             if(undefined!=book.chapters[index].context){
                 console.log('book-view:bufChapter:章节已缓存，无需请求服务器:章节index=',index);
                 return new Promise((resolve)=>{//保持返回格式统一
@@ -82,11 +112,11 @@ export default {
                 })
             }else{
                 return ajax(t.$store.state.apis.chapterUpd,{partNo:index,path:rel}).then(function(resp){
-                let obj=JSON.parse(resp)
-                chap.context=obj.context;
-                t.$store.commit('updChapter',chap)
-                console.log('book-view:bufChapter:已缓存章节:',chap);
-            })
+                    let obj=JSON.parse(resp)
+                    chap.context=obj.context;
+                    t.$store.commit('updChapter',chap)
+                    console.log('book-view:bufChapter:已缓存章节:',chap);
+                })
             }
 
             
@@ -113,19 +143,35 @@ export default {
                 }
             })
         },
-        //从缓存中载入当前章节，缓存不存在则先缓存
+        //从缓存中载入当前章节，缓存不存在则先缓存。缓存顺序：书籍阅读记录->当前阅读章节->目录和后续章节
         loadToLocal(){
             let t=this,rel=this.relpath()
             let book=t.$store.getters.getbook(rel)
             console.log('book-view:loadToLocal:从缓存中查找:\t路径:',rel,'\t查找结果',book);
 
-            if(undefined==book){
-                //如果书籍信息（如章节列表）未缓存则首先缓存书籍信息
+            if(undefined==book||   (undefined!=book && undefined==book.index)  ){
+                //如果书没缓存/书缓存了但阅读记录未缓存则首先缓存阅读记录
                 t.bufInfo().then(()=>t.loadToLocal())
             }else{
                 let index=book.index
+                //章节目录未缓存
+                if(undefined == book.chapters){
+                    this.bufChapter(book,index).then(()=>{
+                        t.chaptersBuf.forEach((chap)=>{
+                            if(chap.index==index){
+                                t.index=chap.index
+                                t.title=chap.title
+                                t.context=chap.context
+                            }
+                        })
+
+                        //缓存目录//再缓存defaultBufSize章
+                        t.bufChapList().then(()=>t.bufChapters(book,index,this.defaultBufSize))
+                    })
+                }else 
+                //章节目录已缓存
                 if(undefined== book.chapters[index].context){
-                    //书籍信息缓存了，但是当前阅读的章节未缓存，则先缓存当前章节
+                    //当前阅读的章节未缓存，则先缓存当前章节
                     this.bufChapter(book,index).then(()=>t.loadToLocal())
                 }else{
                     //从缓存中载入当前章节
@@ -161,7 +207,7 @@ export default {
             //首先校验章节合法性
             if(index<0){
                 this.notifyUser('没有前一章啦~');return
-            }else if(index>this.$store.state.books){
+            }else if(index>=this.$store.getters.getbook.chapterNum){
                 this.notifyUser('没有下一章啦~');return
             }
             let book={
@@ -183,6 +229,10 @@ export default {
                     console.log('book-view:setReadIndex:更新index为',index,'服务器响应：',resp);
                 })
             })            
+        },
+        test(){
+            // this.bufInfo()
+            this.bufChapList()
         }
     },
     computed:{

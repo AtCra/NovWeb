@@ -29,7 +29,7 @@ export default {
     data(){return {
         pageIndex:0,//当前阅读的页码
         pageNum:1,//总页数
-        verticle:false,//是否为纵向阅读
+        verticle:true,//是否为纵向阅读
         margin:16,//边距
 
     }},
@@ -55,13 +55,6 @@ export default {
             c.style.lineHeight=this.$store.state.settings.read.line_height
             c.style.fontFamily=this.$store.state.settings.read.font
         },
-        //重新计数页码
-        reCalcPageNum(){
-            let pageWidth=document.body.offsetWidth-this.margin
-            let containerWidth=this.$refs.acontainer.scrollWidth
-            this.pageNum=Math.round(containerWidth/pageWidth)//四舍五入
-            console.log(`read-section:reCalc-PageNum: pageWidth:${pageWidth},containerWidth:${containerWidth},pageNum:${this.pageNum}`);
-        },
         //请求载入上一章
         reqPreviousChap(){
             this.$emit('previous_chap',this.chapIndex-1); 
@@ -70,9 +63,27 @@ export default {
         reqNextChap(){
             this.$emit('next_chap',this.chapIndex+1);
         },
-        //跳转到page页。成功后会修改data中的pageIndex
+
+        
+        //=================================以下函数用于横向阅读================================
+
+        //重新计数页码，刷新阅读位置
+        reCalcPageNum(){
+            if(this.verticle)return
+            let pageWidth=document.body.offsetWidth-this.margin
+            let containerWidth=this.$refs.acontainer.scrollWidth
+            this.pageNum=Math.round(containerWidth/pageWidth)//四舍五入
+
+            this.goPage(this.pageIndex)
+            console.log(`read-section:reCalc-PageNum: pageWidth:${pageWidth},containerWidth:${containerWidth},pageNum:${this.pageNum}`);
+        },
+
+        //跳转到page页（仅横向滚动模式有效）。成功后会修改data中的pageIndex
         //会检查是否需要载入前/后一章，若需要会发送事件给父组件
         goPage(page){
+            //检查是否为横向阅读模式
+            if(this.verticle)return
+
             //单次翻页完毕前禁止再次翻页
             if(undefined == this.pageGoFinish)this.pageGoFinish=false
             else if(!this.pageGoFinish)return
@@ -92,8 +103,6 @@ export default {
                 }
                 return
             }
-            
-            
 
             //执行翻页效果
             let width = document.body.offsetWidth
@@ -106,31 +115,30 @@ export default {
             let t=this
             setTimeout(()=>{t.pageGoFinish=true},400)//400毫秒后翻页动画结束
         },
-        addListener(){
-            //监听浏览器窗口大小，大小改变时重新计算页码
-            let t=this
-            window.onresize=()=>{
-                t.reCalcPageNum()
-            }
-            //监听触摸事件
-            this.$refs.acontainer.addEventListener('touchstart',this.handleTouch)
-            //监听方向键
-            document.addEventListener('keydown',this.handleKeyDown)
-            // this.$refs.acontainer.addEventListener('onclick',this.handleClick)
+        //用于横向翻页，使当前阅读页面沿X轴方向偏移，向左为负
+        goTranslateX(translateX){
+            let article=this.$refs.article
+            article.style.transform = `translateX(${translateX}px)`
+        },
 
-            console.log('read-section:初始化事件监听器...');
-        },
-        handleKeyDown(e){
-            // console.log(`read-section:event:`,e);
-            if(e.key=='ArrowLeft'){this.goPage(this.pageIndex-1)}
-            else if(e.key=='ArrowRight'){this.goPage(this.pageIndex+1)}
-        },
-        handleClick(e){
-            console.log(`read-section:event:`,e);
-            let w=document.body.offsetWidth
-            if(e.clientX<w/2){
-                this.goPage(this.pageIndex-1)
-            }else this.goPage(this.pageIndex+1)
+        //============================================以上函数用于横向阅读=============================
+
+        addListener(){
+            let t=this
+            this.$nextTick(()=>{
+                //监听浏览器窗口大小，大小改变时重新计算页码
+                
+                window.onresize=()=>{
+                    t.reCalcPageNum()
+                }
+                //监听触摸事件
+                t.$refs.container.addEventListener('touchstart',t.handleTouch)
+                //监听方向键
+                document.addEventListener('keydown',t.handleKeyDown)
+                // this.$refs.acontainer.addEventListener('onclick',this.handleClick)
+
+                console.log('read-section:TOFIX:初始化事件监听器...');
+            })
         },
         handleTouch(e){
             // console.log(`read-section:event:`,e);
@@ -139,6 +147,26 @@ export default {
             if(touch.clientX<w/2){
                 this.goPage(this.pageIndex-1)
             }else this.goPage(this.pageIndex+1)
+        },
+        handleKeyDown(e){
+            //纵向阅读
+            if(this.verticle){
+                if(e.key=='ArrowLeft'){this.reqPreviousChap()}
+                if(e.key=='ArrowRight'){this.reqNextChap()}
+            }else{//横向阅读
+                if(e.key=='ArrowLeft'){this.goPage(this.pageIndex-1)}
+                else if(e.key=='ArrowRight'){this.goPage(this.pageIndex+1)}
+            }
+        },
+        handleClick(e){
+            //仅处理横向阅读
+            if(!this.verticle){
+                console.log(`read-section:event:`,e);
+                let w=document.body.offsetWidth
+                if(e.clientX<w/2){
+                    this.goPage(this.pageIndex-1)
+                }else this.goPage(this.pageIndex+1)
+            }
         },
 
     },

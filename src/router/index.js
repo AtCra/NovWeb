@@ -6,12 +6,12 @@ Vue.use(VueRouter)
 
 Vue.prototype.relpath=function(){
   if(undefined!=this.$route.params.relpath){
-      // console.log('dir-view:relpath='+'/'+this.$route.params.relpath)
-      return '\\'+this.$route.params.relpath;
+      // return '\\'+this.$route.params.relpath;
+      return this.$route.params.relpath;
   }
   else{
-      // console.log('dir-view:relpath=/')
-      return '\\';
+      // return '\\';
+      return '';
   }
 }
 const routes = [

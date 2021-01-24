@@ -1,5 +1,6 @@
-let baseURL='http://localhost:80/nov'
+let baseURL='http://192.168.3.102:80/nov'
 function ajax(apiURL,data){
+    // console.log('NET:AJAX:\t API=',apiURL,'\t data=',data);
 
     return new Promise((resolve,reject)=>{
         let req=new XMLHttpRequest();
