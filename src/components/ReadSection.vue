@@ -1,28 +1,32 @@
 <template>
 <div class="read-container" ref="container">
+    <!-- 章节标题 -->
+    <h1 class="article-title">{{chapIndex}}：{{title}}</h1>
+
+    <!-- 章节内容 -->
+
+
     <!-- 垂直滚动 -->
     <div v-if="verticle" class="verticle-article-container">
-        <div class="scroll-list-wrap">
-            <cube-scroll
-                ref="scroll"
-                :data="ctxArr"
-                :options="options"
-                @pulling-down="reqPreviousChap"
-                @pulling-up="reqNextChap">
-            </cube-scroll>
-        </div>
-        <!-- TODO：垂直滚动时的章节加载 -->
+        <cube-scroll
+            ref="scroll"
+            :data="ctxArr"
+            :options="verticle_scroll_opts"
+            @pulling-down="reqPreviousChap"
+            @pulling-up="reqNextChap">
+            <p v-for="(p,index) in ctxArr" :key="index">{{p}}</p>
+            <p>上拉加载下一章</p>
+        </cube-scroll>
     </div>
 
     <!-- 水平滚动 -->
     <div v-else class="article-container" ref="acontainer" @click="handleClick">
-        <!-- 章节标题 -->
-        <h3 class="article-title">{{title}}</h3>
         <!-- 章节内容 -->
         <article ref="article">
             <p v-for="(p,index) in ctxArr" :key="index">
                 {{p}}
             </p>
+            
         </article>
         <!-- 底栏展示阅读进度，注意pageNum的计算需等待dom尺寸渲染完毕 -->
         <div class="read-process">{{pageIndex+1}}/{{pageNum}}</div>
@@ -33,10 +37,31 @@
 
 export default {
     data(){return {
+        verticle:false,//是否为纵向阅读
+
+        //用于横向阅读
         pageIndex:0,//当前阅读的页码
         pageNum:1,//总页数
-        verticle:true,//是否为纵向阅读
         margin:16,//边距
+
+        //用于纵向阅读
+        verticle_scroll_opts:{
+            // momentum:false,//动态模糊
+            mouseWheel: {
+                speed: 100,
+                invert: false,
+                easeTime: 10//动态模糊动画时间
+            },
+            scrollbar: true,
+            pullDownRefresh:{
+                txt:'上一章'
+            },
+            pullUpLoad:{
+                txt:'下一章',
+                threshold:600//上拉动画时间
+            }
+            // swipeTime: 100 // 滚动动画时间，用于控制滚动灵敏度
+        }
 
     }},
     props:{
@@ -138,7 +163,7 @@ export default {
                     t.reCalcPageNum()
                 }
                 //监听触摸事件
-                t.$refs.container.addEventListener('touchstart',t.handleTouch)
+                t.$refs.container.addEventListener('touchmove',t.handleTouch)
                 //监听方向键
                 document.addEventListener('keydown',t.handleKeyDown)
                 // this.$refs.acontainer.addEventListener('onclick',this.handleClick)
@@ -148,11 +173,13 @@ export default {
         },
         handleTouch(e){
             // console.log(`read-section:event:`,e);
-            let touch=e.targetTouches[0]//当前dom上的头号手指
-            let w=document.body.offsetWidth
-            if(touch.clientX<w/2){
-                this.goPage(this.pageIndex-1)
-            }else this.goPage(this.pageIndex+1)
+            if(!this.verticle){
+                let touch=e.targetTouches[0]//当前dom上的头号手指
+                let w=document.body.offsetWidth
+                if(touch.clientX<w/2){
+                    this.goPage(this.pageIndex-1)
+                }else this.goPage(this.pageIndex+1)
+            }
         },
         handleKeyDown(e){
             //纵向阅读
@@ -203,24 +230,32 @@ export default {
 </script>
 <style lang="scss" scoped>
 $m:16px;//阅读区域边距，修改时需同时修改data中的边距 
+$h:95vh;//阅读区域高度
 
 .read-container{
     text-align: justify;
     background-color: #c2b193;
 }
-.read-process{
-    $m-rp:2em;
-    position: relative;
-    width: max-content;
-    padding : 0 0 0 $m-rp;
-    font-size: 0.5em;
-}
 
+//纵向滚动容器
+.verticle-article-container{
+    height: $h;
+    margin: 0 $m;
+}
+//横向滚动容器
 .article-container {
 // 以下属性用于实现滑动翻页
-    height: 98vh;
+    height: $h;
     overflow: hidden;
     margin: 0 $m;
+
+    .read-process{
+        $m-rp:2em;
+        position: relative;
+        width: max-content;
+        padding : 0 0 0 $m-rp;
+        font-size: 0.5em;
+    }
 }
 article {
 //滑动翻页的本质是将article元素横向展开（width很大），翻页的本质就是将article元素进行横向位移
@@ -231,6 +266,16 @@ article {
     transition: .4s;//翻页动画持续时间
 }
 
+.article-title{
+    width: max-content;
+    font-size: 0.8em;
+    color: gray;
+    //卡片效果
+    $间距:0.5em;
+    margin: 0 0 $间距 $间距;
+    padding:$间距 $间距 0 $间距;
+    box-shadow: 0 4px 8px 0 rgba(0, 0, 0, 0.2)
+}
 p {
     text-indent:2em;//段首缩进2个字符
 }

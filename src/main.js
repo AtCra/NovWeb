@@ -3,7 +3,7 @@ import App from './App.vue'
 import router from './router'
 import store from './store'
 
-import './cube-ui'
+// import './cube-ui'
 import Cube from 'cube-ui'
 Vue.use(Cube)
 
