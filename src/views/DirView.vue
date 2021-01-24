@@ -8,15 +8,15 @@
         <!-- 列表，展示所有的文件夹和指定类型文件 -->
 			<div class="list">
 				<li v-for="dir in dirs" :key="dir.name">
-					<router-link :to="'/dir/'+dir.relpath" class="liItem">
+					<router-link :to="'/dir/'+dir.path" class="liItem">
 							{{dir.name}}
 					</router-link>
 					<span class="itemSize">子文件数：{{dir.cnum}}</span>
 					<span class="lastReadTime">--{{dir.time}}</span>
 				</li>
 				<hr />
-				<li v-for="book in books" :key='book.relpath'>
-					<router-link :to="'/book/'+book.relpath" class="liItem">
+				<li v-for="book in books" :key='book.path'>
+					<router-link :to="'/book/'+book.path" class="liItem">
 						{{book.name}}
 					</router-link>
 					<span class="itemSize">{{Number.parseInt(book.size/1024)}}KB</span>
@@ -45,7 +45,7 @@ export default {
     methods:{
         //此方法用于向服务器请求数据,apiurl为请求api的相对地址
         load(apiurl){
-            console.log('dir-view:Load:向服务器请求数据\tapi:',apiurl,'\trelpath:',this.relpath())
+            console.log('dir-view:Load:向服务器请求数据\tapi:',apiurl,'\tpath:',this.relpath())
 
             return new Promise((resolve)=>{
                 ajax(apiurl,{path:this.relpath()}).then(function(resp){
@@ -60,25 +60,18 @@ export default {
             })
             
         },
-        //此方法用于向服务器请求数据并写入缓存
+        //此方法用于向服务器请求当前目录下的【子目录和txt文件】并写入缓存
         loadToCatch(){
             //dir用于暂存数据
             let dir={};dir.dirs=[];dir.books=[];dir.path=this.relpath()//初始化dir
             let t=this
 
-            let finish=0//完成的请求个数，finish===2表示书和dirs的载入均完成
 
             //异步请求开始,注意此处返回的Promise是then方法返回的（而非一开始new出来的）
-            return new Promise((resolve)=>{
-                t.load(t.$store.state.apis.listDirs).then(arr=>{
-                    dir.dirs=arr
-                    finish++;if(finish==2)resolve()
-                })
-                t.load(t.$store.state.apis.listBooks).then(arr=>{
-                    dir.books=arr
-                    finish++;if(finish==2)resolve()
-                })
-            }).then(()=>{
+            return Promise.all([
+                t.load(t.$store.state.apis.listDirs).then(arr=>{dir.dirs=arr}),
+                t.load(t.$store.state.apis.listBooks).then(arr=>{dir.books=arr})
+            ]).then(()=>{
                 console.log('dir-view:buf:已缓存:',dir)
                 t.$store.commit('pushDir',dir)
             })
