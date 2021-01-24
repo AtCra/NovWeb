@@ -2,9 +2,15 @@
 <div class="read-container" ref="container">
     <!-- 垂直滚动 -->
     <div v-if="verticle" class="verticle-article-container">
-            <p v-for="(p,index) in ctxArr" :key="index">
-                {{p}}
-            </p>
+        <div class="scroll-list-wrap">
+            <cube-scroll
+                ref="scroll"
+                :data="ctxArr"
+                :options="options"
+                @pulling-down="reqPreviousChap"
+                @pulling-up="reqNextChap">
+            </cube-scroll>
+        </div>
         <!-- TODO：垂直滚动时的章节加载 -->
     </div>
 
