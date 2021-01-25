@@ -1,22 +1,29 @@
 <template>
 <div class="read-container" ref="container">
+
+    <!-- 控制面板，便于事件冒泡 -->
+    <control-panel :readingMode="readingMode"
+                    @next_chap="reqNextChap" @previous_chap="reqPreviousChap"></control-panel>
+
     <!-- 章节标题 -->
     <h1 class="article-title">{{chapIndex}}：{{title}}</h1>
 
     <!-- 章节内容 -->
 
-
     <!-- 垂直滚动 -->
     <div v-if="verticle" class="verticle-article-container">
-        <cube-scroll
+        <!-- <cube-scroll
             ref="scroll"
             :data="ctxArr"
             :options="verticle_scroll_opts"
             @pulling-down="reqPreviousChap"
             @pulling-up="reqNextChap">
+        </cube-scroll> -->
+        <div>
+            <button @click="reqPreviousChap">上一章</button>
             <p v-for="(p,index) in ctxArr" :key="index">{{p}}</p>
-            <p>上拉加载下一章</p>
-        </cube-scroll>
+            <button @click="reqNextChap">下一章</button>
+        </div>
     </div>
 
     <!-- 水平滚动 -->
@@ -34,9 +41,17 @@
 </div>
 </template>
 <script>
-
+import ControlPanel from './ControlPanel.vue'
 export default {
+    components:{ControlPanel},
     data(){return {
+        //指定点击何处时呼出控制UI（边界条件）
+        areaCtl:{
+            left:0.3,right:0.7,bottom:0.2,top:0.8
+        },
+
+
+        readingMode:true,//是否为阅读模式，用于判定何时打开控制菜单
         verticle:false,//是否为纵向阅读
 
         //用于横向阅读
@@ -45,25 +60,25 @@ export default {
         margin:16,//边距
 
         //用于纵向阅读
-        verticle_scroll_opts:{
-            // momentum:false,//动态模糊
-            mouseWheel: {
-                speed: 100,
-                invert: false,
-                easeTime: 10//动态模糊动画时间
-            },
-            scrollbar: true,
-            pullDownRefresh:{
-                txt:'上一章'
-            },
-            pullUpLoad:{
-                txt:'下一章',
-                threshold:600//上拉动画时间
-            }
+        // verticle_scroll_opts:{
+        //     // momentum:false,//动态模糊
+        //     mouseWheel: {
+        //         speed: 100,
+        //         invert: false,
+        //         easeTime: 10//动态模糊动画时间
+        //     },
+        //     scrollbar: true,
+        //     pullDownRefresh:{
+        //         txt:'上一章'
+        //     },
+        //     pullUpLoad:{
+        //         txt:'下一章',
+        //         threshold:600//上拉动画时间
+        //     }
             // swipeTime: 100 // 滚动动画时间，用于控制滚动灵敏度
         }
 
-    }},
+    },
     props:{
         chapIndex:{//章节编号
             type:Number,
@@ -101,7 +116,7 @@ export default {
         //重新计数页码，刷新阅读位置
         reCalcPageNum(){
             if(this.verticle)return
-            let pageWidth=document.body.offsetWidth-this.margin
+            let pageWidth=this.$refs.article.offsetWidth-this.margin//document.body.offsetWidth-this.margin
             let containerWidth=this.$refs.acontainer.scrollWidth
             this.pageNum=Math.round(containerWidth/pageWidth)//四舍五入
 
@@ -146,6 +161,7 @@ export default {
             let t=this
             setTimeout(()=>{t.pageGoFinish=true},400)//400毫秒后翻页动画结束
         },
+        //TODO:横向拖动（不完全翻页）
         //用于横向翻页，使当前阅读页面沿X轴方向偏移，向左为负
         goTranslateX(translateX){
             let article=this.$refs.article
@@ -163,23 +179,13 @@ export default {
                     t.reCalcPageNum()
                 }
                 //监听触摸事件
-                t.$refs.container.addEventListener('touchmove',t.handleTouch)
+                t.$refs.container.addEventListener('touchend',t.handleTouch)
                 //监听方向键
                 document.addEventListener('keydown',t.handleKeyDown)
                 // this.$refs.acontainer.addEventListener('onclick',this.handleClick)
 
                 console.log('read-section:TOFIX:初始化事件监听器...');
             })
-        },
-        handleTouch(e){
-            // console.log(`read-section:event:`,e);
-            if(!this.verticle){
-                let touch=e.targetTouches[0]//当前dom上的头号手指
-                let w=document.body.offsetWidth
-                if(touch.clientX<w/2){
-                    this.goPage(this.pageIndex-1)
-                }else this.goPage(this.pageIndex+1)
-            }
         },
         handleKeyDown(e){
             //纵向阅读
@@ -189,6 +195,17 @@ export default {
             }else{//横向阅读
                 if(e.key=='ArrowLeft'){this.goPage(this.pageIndex-1)}
                 else if(e.key=='ArrowRight'){this.goPage(this.pageIndex+1)}
+            }
+        },
+        handleTouch(e){
+            // console.log(`read-section:event:`,e);
+            if(e.clientX<this.areaCtl.read&&e.clientX>this.areaCtl.left)
+            if(!this.verticle){
+                let touch=e.targetTouches[0]//当前dom上的头号手指
+                let w=document.body.offsetWidth
+                if(touch.clientX<w/3){
+                    this.goPage(this.pageIndex-1)
+                }else if(touch.clientX>w*2/3) this.goPage(this.pageIndex+1)
             }
         },
         handleClick(e){
@@ -235,11 +252,12 @@ $h:95vh;//阅读区域高度
 .read-container{
     text-align: justify;
     background-color: #c2b193;
+    width: calc(100vw-#{2*$m});
 }
 
 //纵向滚动容器
 .verticle-article-container{
-    height: $h;
+    height: max-content;
     margin: 0 $m;
 }
 //横向滚动容器

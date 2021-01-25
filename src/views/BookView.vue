@@ -1,18 +1,16 @@
 <template>
     <div id="readView">
-        <!-- <h1>{{title}}</h1>
-        <p v-html="context"></p> -->
-        <div ref="readSection">
-            <!-- 阅读视图，含章节标题，章节正文，底栏页码 -->
-            <read-section :chapIndex="index" :ctxArr="ctxArr" :title="title"
-                           @next_chap="handleSwitchChap(index+1)" @previous_chap="handleSwitchChap(index-1)"></read-section>
-        </div>
+        
+        <!-- 阅读视图，含章节标题，章节正文，底栏页码 -->
+        <read-section :chapIndex="index" :ctxArr="ctxArr" :title="title"
+                        @next_chap="handleSwitchChap(index+1)" @previous_chap="handleSwitchChap(index-1)"></read-section>
     </div>
 </template>
 
 <script>
 import ajax from '../net/conn'
 import ReadSection from '../components/ReadSection.vue'
+
 export default {
     components:{ReadSection},
     data(){
@@ -168,22 +166,24 @@ export default {
                         //缓存目录//再缓存defaultBufSize章
                         t.bufChapList().then(()=>t.bufChapters(book,index,this.defaultBufSize))
                     })
-                }else 
-                //章节目录已缓存
-                if(undefined== book.chapters[index].context){
-                    //当前阅读的章节未缓存，则先缓存当前章节
-                    this.bufChapter(book,index).then(()=>t.loadToLocal())
-                }else{
-                    //从缓存中载入当前章节
-                    t.index=index
-                    t.title=book.chapters[index].title
-                    t.context=book.chapters[index].context
+                }else{//章节目录已缓存
 
-                    console.log('book-view:loadToLocal:当前阅读章节缓存载入成功');
+                    if(undefined== book.chapters[index].context){
+                        //当前阅读的章节未缓存，则先缓存当前章节
+                        this.bufChapter(book,index).then(()=>t.loadToLocal())
+                    }else{
+                        //从缓存中载入当前章节
+                        t.index=index
+                        t.title=book.chapters[index].title
+                        t.context=book.chapters[index].context
 
-                    //再缓存defaultBufSize章
-                    this.bufChapters(book,index,this.defaultBufSize)
+                        console.log('book-view:loadToLocal:当前阅读章节缓存载入成功');
+
+                        //再缓存defaultBufSize章
+                        this.bufChapters(book,index,this.defaultBufSize)
+                    }
                 }
+                
             }
         },
 
@@ -197,18 +197,18 @@ export default {
         //处理切换章节事件，会设置当前阅读章节，并载入
         handleSwitchChap(index){
             console.log('book-view:handle-SwitchPage:处理章节切换：',index);
-            this.setReadIndex(index)
-            this.loadToLocal()
+            let result=this.setReadIndex(index)
+            if(result!=-1) this.loadToLocal()
         },
-        //设置当前阅读的章节（含index合法性校验），会同时更新本地、缓存、服务器端的阅读记录
+        //设置当前阅读的章节（含index合法性校验,不合法返回-1），会同时更新本地、缓存、服务器端的阅读记录
         setReadIndex(index){
             let t=this,rel=this.relpath()
 
             //首先校验章节合法性
             if(index<0){
-                this.notifyUser('没有前一章啦~');return
+                this.notifyUser('没有前一章啦~');return -1
             }else if(index>=this.$store.getters.getbook.chapterNum){
-                this.notifyUser('没有下一章啦~');return
+                this.notifyUser('没有下一章啦~');return -1
             }
             let book={
                 path:rel,
@@ -256,3 +256,9 @@ export default {
     }
 }
 </script>
+
+<style lang="scss" scoped>
+#readView{
+    position:absolute;
+}
+</style>
